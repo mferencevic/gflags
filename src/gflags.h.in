@@ -293,11 +293,11 @@ class GFLAGS_DLL_DECL FlagSaver {
 extern GFLAGS_DLL_DECL std::string CommandlineFlagsIntoString();
 // Usually where this is used, a FlagSaver should be used instead.
 extern GFLAGS_DLL_DECL
-bool ReadFlagsFromString(const std::string& flagfilecontents,
+bool ReadFlagsFromString(const std::string& flag_file_contents,
                          const char* prog_name,
                          bool errors_are_fatal);  // uses SET_FLAGS_VALUE
 
-// These let you manually implement --flagfile functionality.
+// These let you manually implement --flag-file functionality.
 // DEPRECATED.
 extern GFLAGS_DLL_DECL bool AppendFlagsIntoFile(const std::string& filename, const char* prog_name);
 extern GFLAGS_DLL_DECL bool ReadFromFlagsFile(const std::string& filename, const char* prog_name, bool errors_are_fatal);   // uses SET_FLAGS_VALUE
