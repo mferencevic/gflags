@@ -1992,11 +1992,11 @@ void AllowCommandLineReparsing() {
 
 void ReparseCommandLineNonHelpFlags() {
   // We make a copy of argc and argv to pass in
-  const vector<string>& argvs = GetArgvs();
-  int tmp_argc = static_cast<int>(argvs.size());
+  const vector<string>& argvs_inner = GetArgvs();
+  int tmp_argc = static_cast<int>(argvs_inner.size());
   char** tmp_argv = new char* [tmp_argc + 1];
   for (int i = 0; i < tmp_argc; ++i)
-    tmp_argv[i] = strdup(argvs[i].c_str());   // TODO(csilvers): don't dup
+    tmp_argv[i] = strdup(argvs_inner[i].c_str());   // TODO(csilvers): don't dup
 
   ParseCommandLineNonHelpFlags(&tmp_argc, &tmp_argv, false);
 
