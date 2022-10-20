@@ -35,20 +35,11 @@ def gflags_sources(namespace = ["google", "gflags"]):
             "@INCLUDE_GFLAGS_NS_H@": "\n".join(["#include \"gflags/{}\"".format(hdr) for hdr in gflags_ns_h_files]),
         },
     )
-    expanded_template(
-        name = "gflags_completions_h",
-        template = "src/gflags_completions.h.in",
-        out = "gflags_completions.h",
-        substitutions = {
-            "@GFLAGS_NAMESPACE@": namespace[0],
-        },
-    )
-    hdrs = [":gflags_h", ":gflags_declare_h", ":gflags_completions_h"]
+    hdrs = [":gflags_h", ":gflags_declare_h"]
     hdrs.extend([":" + hdr.replace(".", "_") for hdr in gflags_ns_h_files])
     srcs = [
         "src/config.h",
         "src/gflags.cc",
-        "src/gflags_completions.cc",
         "src/gflags_reporting.cc",
         "src/mutex.h",
         "src/util.h",

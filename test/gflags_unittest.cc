@@ -49,15 +49,6 @@
 TEST_INIT
 EXPECT_DEATH_INIT
 
-// I don't actually use this header file, but #include it under the
-// old location to make sure that the include-header-forwarding
-// works.  But don't bother on windows; the windows port is so new
-// it never had the old location-names.
-#ifndef _MSC_VER
-#include <gflags/gflags_completions.h>
-void (*unused_fn)() = &GFLAGS_NAMESPACE::HandleCommandLineCompletions;
-#endif
-
 using std::string;
 using std::vector;
 using GFLAGS_NAMESPACE::int32;

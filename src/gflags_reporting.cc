@@ -57,7 +57,6 @@
 
 #include "config.h"
 #include "gflags/gflags.h"
-#include "gflags/gflags_completions.h"
 #include "util.h"
 
 
@@ -371,8 +370,6 @@ static void AppendPrognameStrings(vector<string>* substrings,
 
 void HandleCommandLineHelpFlags() {
   const char* progname = ProgramInvocationShortName();
-
-  HandleCommandLineCompletions();
 
   vector<string> substrings;
   AppendPrognameStrings(&substrings, progname);

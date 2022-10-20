@@ -5,7 +5,6 @@
 licenses(["notice"])
 
 exports_files([
-    "src/gflags_completions.sh",
     "COPYING.txt",
 ])
 

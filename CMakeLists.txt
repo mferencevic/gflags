@@ -343,7 +343,6 @@ endif ()
 set (PUBLIC_HDRS
   "gflags.h"
   "gflags_declare.h"
-  "gflags_completions.h"
 )
 
 if (GFLAGS_NAMESPACE_SECONDARY)
@@ -369,7 +368,6 @@ set (PRIVATE_HDRS
 set (GFLAGS_SRCS
   "gflags.cc"
   "gflags_reporting.cc"
-  "gflags_completions.cc"
 )
 
 if (OS_WINDOWS)
@@ -569,9 +567,6 @@ if (INSTALL_HEADERS)
     FILE ${PACKAGE_NAME}-nonamespace-targets.cmake
     DESTINATION ${CONFIG_INSTALL_DIR}
   )
-  if (UNIX)
-    install (PROGRAMS src/gflags_completions.sh DESTINATION ${RUNTIME_INSTALL_DIR})
-  endif ()
   if (PKGCONFIG_INSTALL_DIR)
     configure_file ("cmake/package.pc.in" "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}.pc" @ONLY)
     install (FILES "${PROJECT_BINARY_DIR}/${PACKAGE_NAME}.pc" DESTINATION "${PKGCONFIG_INSTALL_DIR}")
