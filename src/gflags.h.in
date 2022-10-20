@@ -304,23 +304,6 @@ extern GFLAGS_DLL_DECL bool ReadFromFlagsFile(const std::string& filename, const
 
 
 // --------------------------------------------------------------------
-// Useful routines for initializing flags from the environment.
-// In each case, if 'varname' does not exist in the environment
-// return defval.  If 'varname' does exist but is not valid
-// (e.g., not a number for an int32 flag), abort with an error.
-// Otherwise, return the value.  NOTE: for booleans, for true use
-// 't' or 'T' or 'true' or '1', for false 'f' or 'F' or 'false' or '0'.
-
-extern GFLAGS_DLL_DECL bool BoolFromEnv(const char *varname, bool defval);
-extern GFLAGS_DLL_DECL int32 Int32FromEnv(const char *varname, int32 defval);
-extern GFLAGS_DLL_DECL uint32 Uint32FromEnv(const char *varname, uint32 defval);
-extern GFLAGS_DLL_DECL int64 Int64FromEnv(const char *varname, int64 defval);
-extern GFLAGS_DLL_DECL uint64 Uint64FromEnv(const char *varname, uint64 defval);
-extern GFLAGS_DLL_DECL double DoubleFromEnv(const char *varname, double defval);
-extern GFLAGS_DLL_DECL const char *StringFromEnv(const char *varname, const char *defval);
-
-
-// --------------------------------------------------------------------
 // The next two functions parse gflags from main():
 
 // Set the "usage" message for this program.  For example:
