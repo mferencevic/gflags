@@ -38,9 +38,8 @@
 //
 // There's only one function that's meant to be called externally:
 // HandleCommandLineHelpFlags().  (Well, actually, ShowUsageWithFlags(),
-// ShowUsageWithFlagsRestrict(), and DescribeOneFlag() can be called
-// externally too, but there's little need for it.)  These are all
-// declared in the main gflags.h header file.
+// and DescribeOneFlag() can be called externally too, but there's little
+// need for it.)  These are all declared in the main gflags.h header file.
 //
 // HandleCommandLineHelpFlags() will check what 'reporting' flags have
 // been defined, if any -- the "help" part of the function name is a
@@ -199,7 +198,6 @@ static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
   // and meaning need to avoid attribute normalization.  This way it
   // can be parsed by simple programs, in addition to xml parsers.
   string r("<flag>");
-  AddXMLTag(&r, "file", flag.filename);
   AddXMLTag(&r, "name", flag.name);
   AddXMLTag(&r, "meaning", flag.description);
   AddXMLTag(&r, "default", flag.default_value);
@@ -211,15 +209,13 @@ static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
 
 // --------------------------------------------------------------------
 // ShowUsageWithFlags()
-// ShowUsageWithFlagsRestrict()
 // ShowXMLOfFlags()
 //    These routines variously expose the registry's list of flag
 //    values.  ShowUsage*() prints the flag-value information
 //    to stdout in a user-readable format (that's what --help uses).
-//    The Restrict() version limits what flags are shown.
 //    ShowXMLOfFlags() prints the flag-value information to stdout
 //    in a machine-readable format.  In all cases, the flags are
-//    sorted: first by filename they are defined in, then by flagname.
+//    sorted: by flagname.
 // --------------------------------------------------------------------
 
 static const char* Basename(const char* filename) {
@@ -227,88 +223,26 @@ static const char* Basename(const char* filename) {
   return sep ? sep + 1 : filename;
 }
 
-static string Dirname(const string& filename) {
-  string::size_type sep = filename.rfind(PATH_SEPARATOR);
-  return filename.substr(0, (sep == string::npos) ? 0 : sep);
-}
-
-// Test whether a filename contains at least one of the substrings.
-static bool FileMatchesSubstring(const string& filename,
-                                 const vector<string>& substrings) {
-  for (vector<string>::const_iterator target = substrings.begin();
-       target != substrings.end();
-       ++target) {
-    if (strstr(filename.c_str(), target->c_str()) != NULL)
-      return true;
-    // If the substring starts with a '/', that means that we want
-    // the string to be at the beginning of a directory component.
-    // That should match the first directory component as well, so
-    // we allow '/foo' to match a filename of 'foo'.
-    if (!target->empty() && (*target)[0] == PATH_SEPARATOR &&
-        strncmp(filename.c_str(), target->c_str() + 1,
-                strlen(target->c_str() + 1)) == 0)
-      return true;
-  }
-  return false;
-}
-
-// Show help for every filename which matches any of the target substrings.
-// If substrings is empty, shows help for every file. If a flag's help message
-// has been stripped (e.g. by adding '#define STRIP_FLAG_HELP 1'
-// before including gflags/gflags.h), then this flag will not be displayed
-// by '--help' and its variants.
-static void ShowUsageWithFlagsMatching(const char *argv0,
-                                       const vector<string> &substrings) {
+void ShowUsageWithFlags(const char *argv0) {
   fprintf(stdout, "%s: %s\n", Basename(argv0), ProgramUsage());
 
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);           // flags are sorted by filename, then flagname
 
-  string last_filename;          // so we know when we're at a new file
-  bool first_directory = true;   // controls blank lines between dirs
-  bool found_match = false;      // stays false iff no dir matches restrict
   for (vector<CommandLineFlagInfo>::const_iterator flag = flags.begin();
        flag != flags.end();
        ++flag) {
-    if (substrings.empty() ||
-        FileMatchesSubstring(flag->filename, substrings)) {
-      found_match = true;     // this flag passed the match!
-      // If the flag has been stripped, pretend that it doesn't exist.
-      if (flag->description == kStrippedFlagHelp) continue;
-      if (flag->filename != last_filename) {                      // new file
-        if (Dirname(flag->filename) != Dirname(last_filename)) {  // new dir!
-          if (!first_directory)
-            fprintf(stdout, "\n\n");   // put blank lines between directories
-          first_directory = false;
-        }
-        fprintf(stdout, "\n  Flags from %s:\n", flag->filename.c_str());
-        last_filename = flag->filename;
-      }
-      // Now print this flag
-      fprintf(stdout, "%s", DescribeOneFlag(*flag).c_str());
-    }
+    // If the flag has been stripped, pretend that it doesn't exist.
+    if (flag->description == kStrippedFlagHelp) continue;
+    // Now print this flag
+    fprintf(stdout, "%s", DescribeOneFlag(*flag).c_str());
   }
-  if (!found_match && !substrings.empty()) {
-    fprintf(stdout, "\n  No modules matched: use -help\n");
-  }
-}
-
-void ShowUsageWithFlagsRestrict(const char *argv0, const char *restrict_) {
-  vector<string> substrings;
-  if (restrict_ != NULL && *restrict_ != '\0') {
-    substrings.push_back(restrict_);
-  }
-  ShowUsageWithFlagsMatching(argv0, substrings);
-}
-
-void ShowUsageWithFlags(const char *argv0) {
-  ShowUsageWithFlagsRestrict(argv0, "");
 }
 
 // Convert the help, program, and usage to xml.
 static void ShowXMLOfFlags(const char *prog_name) {
   vector<CommandLineFlagInfo> flags;
-  GetAllFlags(&flags);   // flags are sorted: by filename, then flagname
+  GetAllFlags(&flags);   // flags are sorted: by flagname
 
   // XML.  There is no corresponding schema yet
   fprintf(stdout, "<?xml version=\"1.0\"?>\n");
@@ -374,7 +308,7 @@ void HandleCommandLineHelpFlags() {
 
   if (FLAGS_help) {
     // show all options
-    ShowUsageWithFlagsRestrict(progname, "");   // empty restrict
+    ShowUsageWithFlags(progname);
     gflags_exitfunc(1);
 
   } else if (FLAGS_helpxml) {

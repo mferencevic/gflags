@@ -498,14 +498,12 @@ void FlagValue::CopyFrom(const FlagValue& x) {
 class CommandLineFlag {
  public:
   // Note: we take over memory-ownership of current_val and default_val.
-  CommandLineFlag(const char* name, const char* help, const char* filename,
+  CommandLineFlag(const char* name, const char* help,
                   FlagValue* current_val, FlagValue* default_val);
   ~CommandLineFlag();
 
   const char* name() const { return name_; }
   const char* help() const { return help_; }
-  const char* filename() const { return file_; }
-  const char* CleanFileName() const;  // nixes irrelevant prefix such as homedir
   string current_value() const { return current_->ToString(); }
   string default_value() const { return defvalue_->ToString(); }
   const char* type_name() const { return defvalue_->TypeName(); }
@@ -535,7 +533,6 @@ class CommandLineFlag {
 
   const char* const name_;     // Flag name
   const char* const help_;     // Help message
-  const char* const file_;     // Which file did this come from?
   bool modified_;              // Set after default assignment?
   FlagValue* defvalue_;        // Default value for flag
   FlagValue* current_;         // Current value for flag
@@ -550,26 +547,14 @@ class CommandLineFlag {
 };
 
 CommandLineFlag::CommandLineFlag(const char* name, const char* help,
-                                 const char* filename,
                                  FlagValue* current_val, FlagValue* default_val)
-    : name_(name), help_(help), file_(filename), modified_(false),
+    : name_(name), help_(help), modified_(false),
       defvalue_(default_val), current_(current_val), validate_fn_proto_(NULL) {
 }
 
 CommandLineFlag::~CommandLineFlag() {
   delete current_;
   delete defvalue_;
-}
-
-const char* CommandLineFlag::CleanFileName() const {
-  // This function has been used to strip off a common prefix from
-  // flag source file names. Because flags can be defined in different
-  // shared libraries, there may not be a single common prefix.
-  // Further, this functionality hasn't been active for many years.
-  // Need a better way to produce more user friendly help output or
-  // "anonymize" file paths in help output, respectively.
-  // Follow issue at: https://github.com/gflags/gflags/issues/86
-  return filename();
 }
 
 void CommandLineFlag::FillCommandLineFlagInfo(
@@ -579,7 +564,6 @@ void CommandLineFlag::FillCommandLineFlagInfo(
   result->description = help();
   result->current_value = current_value();
   result->default_value = default_value();
-  result->filename = CleanFileName();
   UpdateModifiedBit();
   result->is_default = !modified_;
   result->has_validator_fn = validate_function() != NULL;
@@ -718,19 +702,10 @@ void FlagRegistry::RegisterFlag(CommandLineFlag* flag) {
   pair<FlagIterator, bool> ins =
     flags_.insert(pair<const char*, CommandLineFlag*>(flag->name(), flag));
   if (ins.second == false) {   // means the name was already in the map
-    if (strcmp(ins.first->second->filename(), flag->filename()) != 0) {
-      ReportError(DIE, "ERROR: flag '%s' was defined more than once "
-                  "(in files '%s' and '%s').\n",
-                  flag->name(),
-                  ins.first->second->filename(),
-                  flag->filename());
-    } else {
-      ReportError(DIE, "ERROR: something wrong with flag '%s' in file '%s'.  "
-                  "One possibility: file '%s' is being linked both statically "
-                  "and dynamically into this executable.\n",
-                  flag->name(),
-                  flag->filename(), flag->filename());
-    }
+    ReportError(DIE, "ERROR: something wrong with flag '%s'.  "
+                "One possibility: file is being linked both statically "
+                "and dynamically into this executable.\n",
+                flag->name());
   }
   // Also add to the flags_by_ptr_ map.
   flags_by_ptr_[flag->current_->value_buffer_] = flag;
@@ -1420,14 +1395,13 @@ bool AddFlagValidator(const void* flag_ptr, ValidateFnProto validate_fn_proto) {
 namespace {
 void RegisterCommandLineFlag(const char* name,
                              const char* help,
-                             const char* filename,
                              FlagValue* current,
                              FlagValue* defvalue) {
   if (help == NULL)
     help = "";
   // Importantly, flag_ will never be deleted, so storage is always good.
   CommandLineFlag* flag =
-      new CommandLineFlag(name, help, filename, current, defvalue);
+      new CommandLineFlag(name, help, current, defvalue);
   FlagRegistry::GlobalRegistry()->RegisterFlag(flag);  // default registry
 }
 }
@@ -1435,18 +1409,17 @@ void RegisterCommandLineFlag(const char* name,
 template <typename FlagType>
 FlagRegisterer::FlagRegisterer(const char* name,
                                const char* help,
-                               const char* filename,
                                FlagType* current_storage,
                                FlagType* defvalue_storage) {
   FlagValue* const current = new FlagValue(current_storage, false);
   FlagValue* const defvalue = new FlagValue(defvalue_storage, false);
-  RegisterCommandLineFlag(name, help, filename, current, defvalue);
+  RegisterCommandLineFlag(name, help, current, defvalue);
 }
 
 // Force compiler to generate code for the given template specialization.
 #define INSTANTIATE_FLAG_REGISTERER_CTOR(type)                  \
   template GFLAGS_DLL_DECL FlagRegisterer::FlagRegisterer(      \
-      const char* name, const char* help, const char* filename, \
+      const char* name, const char* help,                       \
       type* current_storage, type* defvalue_storage)
 
 // Do this for all supported flag types.
@@ -1464,19 +1437,8 @@ INSTANTIATE_FLAG_REGISTERER_CTOR(std::string);
 // GetAllFlags()
 //    The main way the FlagRegistry class exposes its data.  This
 //    returns, as strings, all the info about all the flags in
-//    the main registry, sorted first by filename they are defined
-//    in, and then by flagname.
+//    the main registry, sorted by flagname.
 // --------------------------------------------------------------------
-
-struct FilenameFlagnameCmp {
-  bool operator()(const CommandLineFlagInfo& a,
-                  const CommandLineFlagInfo& b) const {
-    int cmp = strcmp(a.filename.c_str(), b.filename.c_str());
-    if (cmp == 0)
-      cmp = strcmp(a.name.c_str(), b.name.c_str());  // secondary sort key
-    return cmp < 0;
-  }
-};
 
 void GetAllFlags(vector<CommandLineFlagInfo>* OUTPUT) {
   FlagRegistry* const registry = FlagRegistry::GlobalRegistry();
@@ -1488,8 +1450,9 @@ void GetAllFlags(vector<CommandLineFlagInfo>* OUTPUT) {
     OUTPUT->push_back(fi);
   }
   registry->Unlock();
-  // Now sort the flags, first by filename they occur in, then alphabetically
-  sort(OUTPUT->begin(), OUTPUT->end(), FilenameFlagnameCmp());
+  sort(OUTPUT->begin(), OUTPUT->end(), [](const auto &first, const auto &second) {
+    return first.name < second.name;
+  });
 }
 
 // --------------------------------------------------------------------
@@ -1691,7 +1654,7 @@ class FlagSaverImpl {
       const CommandLineFlag* main = it->second;
       // Sets up all the const variables in backup correctly
       CommandLineFlag* backup = new CommandLineFlag(
-          main->name(), main->help(), main->filename(),
+          main->name(), main->help(),
           main->current_->New(), main->defvalue_->New());
       // Sets up all the non-const variables in backup correctly
       backup->CopyFrom(*main);
